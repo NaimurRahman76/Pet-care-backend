@@ -1,4 +1,4 @@
-namespace Pet_care_backend
+namespace PetCareBackend
 {
     public class WeatherForecast
     {
