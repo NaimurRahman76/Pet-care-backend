@@ -1,6 +1,6 @@
-﻿namespace PetCareBackend.Models
+﻿namespace PetCareBackend.Domains
 {
-    public class PetModel : BaseModel
+    public class Pet : BaseModel
     {
         public string Name { get; set; }
 

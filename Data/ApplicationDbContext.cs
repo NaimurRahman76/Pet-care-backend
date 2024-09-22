@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using PetCareBackend.Domains;
 
 namespace PetCareBackend.Models
 {
@@ -8,7 +9,7 @@ namespace PetCareBackend.Models
         {
         }
 
-        public DbSet<UserModel> Users { get; set; }
-        public DbSet<PetModel> Pets { get; set; }
+        public DbSet<User> Users { get; set; }
+        public DbSet<Pet> Pets { get; set; }
     }
 }

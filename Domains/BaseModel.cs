@@ -1,4 +1,4 @@
-﻿namespace PetCareBackend.Models
+﻿namespace PetCareBackend.Domains
 {
     public class BaseModel
     {
