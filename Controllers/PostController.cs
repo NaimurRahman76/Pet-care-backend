@@ -39,7 +39,7 @@ namespace PetCareBackend.Controllers
             }
             var currentUserId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var post = await _postService.CreatePostAsync(postCreationDto,currentUserId);
-            return CreatedAtAction(nameof(GetAllPosts), new { id = post.Id }, post);
+            return Ok(post);
         }
 
         [HttpPut("{id}")]

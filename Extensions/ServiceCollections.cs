@@ -57,9 +57,9 @@ namespace PetCareBackend.Extensions
                     builder => builder.WithOrigins("http://localhost:4200")
                                       .AllowAnyMethod()
                                       .AllowAnyHeader()
-                                      .AllowCredentials());
-
-        });
+                                      .AllowCredentials()
+                );
+            });
 
             return services;
         }

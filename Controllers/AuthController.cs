@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using PetCareBackend.DTOs;
 using PetCareBackend.Services;
+using System.Security.Claims;
 
 namespace PetCareBackend.Controllers
 {
@@ -108,13 +110,40 @@ namespace PetCareBackend.Controllers
         }
 
         // POST: api/auth/logout
+        [Authorize]
         [HttpPost("api/auth/logout")]
-        public IActionResult Logout()
+        public async Task<IActionResult> LogoutAsync()
         {
+            var refreshToken = Request.Cookies["refresh_token"];
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); 
+            var user = await _userService.GetUserByRefreshTokenAsync(refreshToken);
+            if (user == null)
+                return Unauthorized("Invalid refresh token");
+
+            // Check if refresh token has expired
+            if (user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+                return Unauthorized("Refresh token expired");
             // Clear the JWT token from the cookie
-            Response.Cookies.Delete("refresh_token");
-            Response.Cookies.Delete("access_token");
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true, 
+                SameSite = SameSiteMode.None 
+            };
+            Response.Cookies.Delete("refresh_token",cookieOptions);
+            Response.Cookies.Delete("access_token",cookieOptions);
             return Ok(new { message="Logged out successfully" });
+        }
+
+        [HttpGet("api/auth/IsAuthenticated")]
+        [Authorize]  
+        public IActionResult IsAuthenticated()
+        {
+            if (!User.Identity.IsAuthenticated)
+            {
+                return Unauthorized("User is not authenticated."); 
+            }
+            return Ok(new { isAuthenticated = true });
         }
     }
 }
