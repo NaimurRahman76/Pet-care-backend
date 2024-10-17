@@ -19,7 +19,16 @@ namespace PetCareBackend.Models
                 .HasOne(pi => pi.Post) 
                 .WithMany(p => p.PostImages) 
                 .HasForeignKey(pi => pi.PostId) 
-                .OnDelete(DeleteBehavior.Cascade); 
+                .OnDelete(DeleteBehavior.Cascade);
+
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.RefreshToken)
+                .HasMaxLength(256); 
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.RefreshTokenExpiryTime);
         }
     }
 }

@@ -10,5 +10,12 @@ namespace PetCareBackend.Services
         Task<string> AuthenticateAsync(string email, string password);
 
         Task<User> GetUserByEmailAsync(string email);
+
+        Task<User> GetUserByRefreshTokenAsync(string refreshToken);
+        Task<User> GetUserByIdAsync(int id);
+        Task<User> UpdateUserAsync(User user);
+
+        Task SaveRefreshTokenAsync(int userId, string refreshToken, DateTime refreshTokenExpiryTime);
+
     }
 }

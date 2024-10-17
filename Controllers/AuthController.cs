@@ -7,10 +7,13 @@ namespace PetCareBackend.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly ITokenService _tokenService;
 
-        public AuthController(IUserService userService)
+        public AuthController(IUserService userService,
+            ITokenService tokenService)
         {
             _userService = userService;
+            this._tokenService = tokenService;
         }
 
         // POST: api/auth/signup
@@ -37,18 +40,71 @@ namespace PetCareBackend.Controllers
             if (token == null)
                 return Unauthorized("Invalid credentials");
             var user = await _userService.GetUserByEmailAsync(loginDto.Email);
+            var accessToken = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+            var refreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            // Save refresh token in the database (or some persistence)
+            await _userService.SaveRefreshTokenAsync(user.Id, refreshToken, refreshTokenExpiryTime);
+            Response.Cookies.Append("access_token", accessToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,//for development use false
+                Expires = DateTime.UtcNow.AddMinutes(15),
+                SameSite = SameSiteMode.None
+            });
 
-            // Set token in HttpOnly cookie
-            var cookieOptions = new CookieOptions
+            Response.Cookies.Append("refresh_token", refreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,//for development use false
+                Expires = DateTime.UtcNow.AddDays(7), // Longer expiration
+                SameSite = SameSiteMode.None
+            });
+
+            return Ok(new { message = "Login successful",name=user.FullName});
+        }
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken()
+        {
+            var refreshToken = Request.Cookies["refresh_token"];
+            if (string.IsNullOrEmpty(refreshToken))
+                return Unauthorized("No refresh token found");
+
+            var user = await _userService.GetUserByRefreshTokenAsync(refreshToken);
+            if (user == null)
+                return Unauthorized("Invalid refresh token");
+
+            // Check if refresh token has expired
+            if (user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+                return Unauthorized("Refresh token expired");
+
+            // Generate new access token and optionally a new refresh token
+            var newAccessToken = _tokenService.GenerateAccessToken(user);
+            var newRefreshToken = _tokenService.GenerateRefreshToken();
+            var accessToeknExpiredTimeInUtc = DateTime.UtcNow.AddMinutes(15);
+            var refreshToeknExpiredTimeInUtc = DateTime.UtcNow.AddDays(7);
+            // Update refresh token in the database
+            await _userService.SaveRefreshTokenAsync(user.Id, newRefreshToken, refreshToeknExpiredTimeInUtc);
+
+            // Set new tokens in HttpOnly cookies
+            Response.Cookies.Append("access_token", newAccessToken, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
-                Expires = DateTime.UtcNow.AddDays(7),
-                SameSite = SameSiteMode.Strict
-            };
-            Response.Cookies.Append("jwt", token, cookieOptions);
+                Expires = accessToeknExpiredTimeInUtc,
+                SameSite = SameSiteMode.None
+            });
 
-            return Ok(new { message = "Login successful", token ,name=user.Username});
+            Response.Cookies.Append("refresh_token", newRefreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                Expires = refreshToeknExpiredTimeInUtc, 
+                SameSite = SameSiteMode.None
+            });
+
+            return Ok(new { message = "Token refreshed successfully" });
         }
 
         // POST: api/auth/logout
@@ -56,7 +112,8 @@ namespace PetCareBackend.Controllers
         public IActionResult Logout()
         {
             // Clear the JWT token from the cookie
-            Response.Cookies.Delete("jwt");
+            Response.Cookies.Delete("refresh_token");
+            Response.Cookies.Delete("access_token");
             return Ok(new { message="Logged out successfully" });
         }
     }

@@ -30,7 +30,7 @@ namespace PetCareBackend.Services
         {
             var claims = new[]
             {
-                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Role, user.Role)
             };
@@ -42,7 +42,7 @@ namespace PetCareBackend.Services
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(15), 
+                expires: DateTime.UtcNow.AddMinutes(15), 
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
@@ -66,19 +66,17 @@ namespace PetCareBackend.Services
             if (await _applicationDbContext.Users.AnyAsync(u => u.Email == email))
                 return false;
 
-            if (await _applicationDbContext.Users.AnyAsync(u => u.Username == username))
-                return false;
-
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
-
 
             var user = new User
             {
                 Email = email,
                 Password = hashedPassword,
                 Role = Roles.User.ToString() ,
-                Username = username,
-                Gender = gender
+                FullName = username,
+                Gender = gender,
+                CreatedOnUtc = DateTime.UtcNow,
+                UpdatedOnUtc = DateTime.UtcNow
             };
 
             _applicationDbContext.Users.Add(user);
@@ -91,6 +89,36 @@ namespace PetCareBackend.Services
         {
             return await _applicationDbContext.Users
                    .FirstOrDefaultAsync(u => u.Email == email);
+        }
+
+        public async Task<User> GetUserByRefreshTokenAsync(string refreshToken)
+        {
+            return await _applicationDbContext.Users
+                .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken && u.RefreshTokenExpiryTime > DateTime.UtcNow);
+        }
+
+        public async Task SaveRefreshTokenAsync(int userId, string refreshToken, DateTime refreshTokenExpiryTime)
+        {
+            var user = await _applicationDbContext.Users.FindAsync(userId);
+            if (user != null)
+            {
+                user.RefreshToken = refreshToken;
+                user.RefreshTokenExpiryTime = refreshTokenExpiryTime;
+                await _applicationDbContext.SaveChangesAsync();
+            }
+        }
+
+        public Task<User> GetUserByIdAsync(int id)
+        {
+            var user = _applicationDbContext.Users.FirstOrDefaultAsync(x => x.Id == id);
+            return user;
+        }
+
+        public async Task<User> UpdateUserAsync(User user)
+        {
+            _applicationDbContext.Users.Update(user);
+            await _applicationDbContext.SaveChangesAsync();
+            return user;
         }
 
         #endregion

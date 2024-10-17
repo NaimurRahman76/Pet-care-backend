@@ -4,7 +4,7 @@ namespace PetCareBackend.Domains
 {
     public class User :BaseModel
     {
-        public string Username { get; set; }
+        public string FullName { get; set; }
 
         [EmailAddress]
         public string Email { get; set; }
@@ -16,5 +16,7 @@ namespace PetCareBackend.Domains
         public string Role { get; set; }
 
         public bool IsVerified { get; set; }
+        public string RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
     }
 }
