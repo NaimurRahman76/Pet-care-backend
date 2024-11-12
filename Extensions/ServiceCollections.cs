@@ -56,7 +56,7 @@ namespace PetCareBackend.Extensions
                 options.AddPolicy("AllowAngularApp",
                     builder => builder.WithOrigins("http://localhost:4200")
                                       .AllowAnyMethod()
-                                      .AllowAnyHeader()
+                                      .WithHeaders("Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With")
                                       .AllowCredentials()
                 );
             });

@@ -17,17 +17,18 @@ namespace PetCareBackend.Services
             _environment = environment;
         }
 
-        public async Task<List<PostDetailsDTO>> GetAllPostsAsync(int pageNumber, int pageSize)
+        public async Task<PostListResponseDTO> GetAllPostsAsync(int offset, int pageSize)
         {
             var totalCount = await _context.Posts.CountAsync(); 
 
             var posts = await _context.Posts
                 .Include(p => p.PostImages)
                 .OrderByDescending(p => p.CreatedOnUtc)
-                .Skip((pageNumber - 1) * pageSize)
+                .Skip(offset)
                 .Take(pageSize)
                 .ToListAsync();
-
+            var totalPosts = await _context.Posts.CountAsync();
+            bool hasMore = offset + pageSize < totalPosts;
             var postDetails = posts.Select(post => new PostDetailsDTO
             {
                 PostId = post.Id,
@@ -37,7 +38,11 @@ namespace PetCareBackend.Services
                 ImageUrls = post.PostImages.Select(pi => Convert.ToBase64String(pi.ImageData)).ToList()
             }).ToList();
 
-            return postDetails;
+            return new PostListResponseDTO
+            {
+                Posts = postDetails,
+                HasMore = hasMore
+            };
         }
 
         public async Task<Post> CreatePostAsync(PostCreationDTO postCreationDto, int userId)

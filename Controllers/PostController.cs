@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PetCareBackend.Domains;
 using PetCareBackend.DTOs;
 using PetCareBackend.Services;
@@ -39,7 +40,7 @@ namespace PetCareBackend.Controllers
             }
             var currentUserId = Convert.ToInt32(User.FindFirstValue(ClaimTypes.NameIdentifier));
             var post = await _postService.CreatePostAsync(postCreationDto,currentUserId);
-            return Ok(post);
+            return Ok();
         }
 
         [HttpPut("{id}")]
@@ -77,6 +78,14 @@ namespace PetCareBackend.Controllers
                 return Ok(user);
             }
             return Ok();
+        }
+
+        [HttpGet("GetPosts")]
+        public async Task<IActionResult> GetPosts([FromQuery] int offset = 0, [FromQuery] int pageSize = 10)
+        {
+            var postListResponse = await _postService.GetAllPostsAsync(offset, pageSize);
+            
+            return Ok(postListResponse);
         }
     }
 
